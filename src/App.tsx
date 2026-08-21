@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Calculator, GitCompareArrows, Sparkles, Info } from 'lucide-react';
+import { Calculator, GitCompareArrows, Info, Languages } from 'lucide-react';
 import {
   type LoanParams,
   type ScheduleResult,
@@ -7,6 +7,7 @@ import {
   defaultParams,
   CURRENCIES,
 } from '@/lib/loan';
+import { useI18n, getLocale } from '@/lib/i18n';
 import InputPanel from '@/components/InputPanel';
 import SummaryCards, { TotalsBar } from '@/components/SummaryCards';
 import PaymentChart from '@/components/PaymentChart';
@@ -17,6 +18,8 @@ import HowItWorks from '@/components/HowItWorks';
 type Scenario = 'A' | 'B';
 
 export default function App() {
+  const { lang, t, toggleLang } = useI18n();
+  const locale = getLocale(lang);
   const [paramsA, setParamsA] = useState<LoanParams>(defaultParams());
   const [paramsB, setParamsB] = useState<LoanParams>(() => ({
     ...defaultParams(),
@@ -61,8 +64,8 @@ export default function App() {
 
   const baseResult = active === 'A' ? resultA : resultB;
   const altResult = active === 'A' ? resultB : resultA;
-  const baseLabel = active === 'A' ? 'Сценарий А' : 'Сценарий Б';
-  const altLabel = active === 'A' ? 'Сценарий Б' : 'Сценарий А';
+  const baseLabel = active === 'A' ? t.scenarioA : t.scenarioB;
+  const altLabel = active === 'A' ? t.scenarioB : t.scenarioA;
   const baseColor = active === 'A' ? 'text-primary-600' : 'text-accent-600';
   const altColor = active === 'A' ? 'text-accent-600' : 'text-primary-600';
   const baseDot = active === 'A' ? 'bg-primary-500' : 'bg-accent-500';
@@ -79,22 +82,32 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-base sm:text-lg font-display font-bold text-neutral-900 leading-tight">
-                Кредитный калькулятор
+                {t.appTitle}
               </h1>
               <p className="text-xs text-neutral-400 leading-tight hidden sm:block">
-                Аннуитет, дифференцированный платёж, досрочное погашение
+                {t.appSubtitle}
               </p>
             </div>
           </div>
 
-          <button
-            onClick={() => setShowComparison(!showComparison)}
-            className={`btn-outline text-xs sm:text-sm ${showComparison ? '!border-primary-300 !text-primary-700 !bg-primary-50' : ''}`}
-          >
-            <GitCompareArrows className="w-4 h-4" />
-            <span className="hidden sm:inline">Сравнение</span>
-            <span className="sm:hidden">Сравн.</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleLang}
+              className="btn-outline text-xs sm:text-sm"
+              title={lang === 'ru' ? 'Қазақ тіліне ауыстыру' : 'Переключить на русский'}
+            >
+              <Languages className="w-4 h-4" />
+              <span>{t.languageLabel}</span>
+            </button>
+            <button
+              onClick={() => setShowComparison(!showComparison)}
+              className={`btn-outline text-xs sm:text-sm ${showComparison ? '!border-primary-300 !text-primary-700 !bg-primary-50' : ''}`}
+            >
+              <GitCompareArrows className="w-4 h-4" />
+              <span className="hidden sm:inline">{t.comparison}</span>
+              <span className="sm:hidden">{t.comparisonShort}</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -111,7 +124,7 @@ export default function App() {
               >
                 <span className="inline-flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${active === 'A' ? 'bg-primary-500' : 'bg-neutral-300'}`} />
-                  Сценарий А
+                  {t.scenarioA}
                 </span>
               </button>
               <button
@@ -120,7 +133,7 @@ export default function App() {
               >
                 <span className="inline-flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${active === 'B' ? 'bg-accent-500' : 'bg-neutral-300'}`} />
-                  Сценарий Б
+                  {t.scenarioB}
                 </span>
               </button>
             </div>
@@ -130,7 +143,7 @@ export default function App() {
               onChange={updateActive}
               onReset={resetActive}
               onDuplicate={duplicateAToB}
-              scenarioLabel={active === 'A' ? 'Сценарий А' : 'Сценарий Б'}
+              scenarioLabel={active === 'A' ? t.scenarioA : t.scenarioB}
               scenarioColor={active === 'A' ? 'bg-primary-500' : 'bg-accent-500'}
               canDuplicate={active === 'A'}
             />
@@ -138,11 +151,11 @@ export default function App() {
 
           {/* Right: Results */}
           <div className="space-y-5 min-w-0">
-            <SummaryCards result={activeResult} params={activeParams} currencySymbol={currencySymbol} />
+            <SummaryCards result={activeResult} params={activeParams} currencySymbol={currencySymbol} locale={locale} />
 
-            <TotalsBar result={activeResult} currencySymbol={currencySymbol} />
+            <TotalsBar result={activeResult} currencySymbol={currencySymbol} locale={locale} />
 
-            <PaymentChart result={activeResult} currencySymbol={currencySymbol} />
+            <PaymentChart result={activeResult} currencySymbol={currencySymbol} locale={locale} />
 
             {showComparison && (
               <ComparisonPanel
@@ -153,10 +166,11 @@ export default function App() {
                 altLabel={altLabel}
                 baseColor={baseDot}
                 altColor={altDot}
+                locale={locale}
               />
             )}
 
-            <ScheduleTable result={activeResult} currencySymbol={currencySymbol} />
+            <ScheduleTable result={activeResult} currencySymbol={currencySymbol} locale={locale} />
 
             <HowItWorks />
           </div>
@@ -166,10 +180,7 @@ export default function App() {
         <footer className="mt-8 pt-6 border-t border-neutral-200">
           <div className="flex items-center gap-2 text-xs text-neutral-400">
             <Info className="w-3.5 h-3.5" />
-            <p>
-              Результаты расчёта носят справочный характер и не являются публичной офертой. Точные условия
-              определяет банк при выдаче кредита.
-            </p>
+            <p>{t.disclaimer}</p>
           </div>
         </footer>
       </main>

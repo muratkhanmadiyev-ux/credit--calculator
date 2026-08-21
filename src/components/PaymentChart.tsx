@@ -1,15 +1,18 @@
 import { useState, useMemo } from 'react';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { type ScheduleResult, formatAmount, formatDateShort } from '@/lib/loan';
+import { useI18n } from '@/lib/i18n';
 
 interface PaymentChartProps {
   result: ScheduleResult;
   currencySymbol: string;
+  locale: string;
 }
 
 type ChartMode = 'composition' | 'balance';
 
-export default function PaymentChart({ result, currencySymbol }: PaymentChartProps) {
+export default function PaymentChart({ result, currencySymbol, locale }: PaymentChartProps) {
+  const { t } = useI18n();
   const [mode, setMode] = useState<ChartMode>('composition');
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
@@ -41,7 +44,7 @@ export default function PaymentChart({ result, currencySymbol }: PaymentChartPro
   if (data.length === 0) {
     return (
       <div className="card p-8 flex items-center justify-center text-sm text-neutral-400">
-        Недостаточно данных для графика
+        {t.notEnoughData}
       </div>
     );
   }
@@ -50,7 +53,6 @@ export default function PaymentChart({ result, currencySymbol }: PaymentChartPro
   const maxY = mode === 'composition' ? data[0].maxPayment : data[0].maxBalance;
   const yScale = (v: number) => PAD.top + chartH - (v / maxY) * chartH;
 
-  // Build stacked area paths for composition
   const buildStackedAreas = () => {
     let cumTop = data.map(() => 0);
     const layers = [
@@ -68,19 +70,11 @@ export default function PaymentChart({ result, currencySymbol }: PaymentChartPro
       });
 
       const topPath = running.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xScale(i)} ${yScale(v)}`).join(' ');
-      const bottomPath = running
-        .map((v, i) => {
-          const bottom = cumTop[i] - values[i];
-          return `${i === 0 ? 'M' : 'L'} ${xScale(i)} ${yScale(bottom)}`;
-        })
-        .reverse()
-        .join(' ');
 
       return { ...layer, topPath, values, running };
     });
   };
 
-  // Balance line path
   const balancePath = data
     .map((d, i) => `${i === 0 ? 'M' : 'L'} ${xScale(i)} ${yScale(d.balance)}`)
     .join(' ');
@@ -88,11 +82,9 @@ export default function PaymentChart({ result, currencySymbol }: PaymentChartPro
   const balanceAreaPath =
     `${balancePath} L ${xScale(data.length - 1)} ${yScale(0)} L ${xScale(0)} ${yScale(0)} Z`;
 
-  // Y axis ticks
   const yTicks = 4;
   const tickValues = Array.from({ length: yTicks + 1 }, (_, i) => (maxY / yTicks) * i);
 
-  // X axis ticks
   const xTickCount = Math.min(6, data.length);
   const xTickIndices = Array.from({ length: xTickCount }, (_, i) =>
     Math.round((i / (xTickCount - 1)) * (data.length - 1))
@@ -112,7 +104,7 @@ export default function PaymentChart({ result, currencySymbol }: PaymentChartPro
         <div className="flex items-center gap-2">
           {mode === 'composition' ? <TrendingUp className="w-4 h-4 text-neutral-500" /> : <TrendingDown className="w-4 h-4 text-neutral-500" />}
           <h3 className="text-sm font-semibold text-neutral-700">
-            {mode === 'composition' ? 'Структура платежа' : 'Остаток долга'}
+            {mode === 'composition' ? t.paymentComposition : t.balanceRemaining}
           </h3>
         </div>
         <div className="flex gap-1 p-1 bg-neutral-100 rounded-lg">
@@ -120,13 +112,13 @@ export default function PaymentChart({ result, currencySymbol }: PaymentChartPro
             onClick={() => setMode('composition')}
             className={`tab-btn !px-3 !py-1.5 text-xs ${mode === 'composition' ? 'tab-btn-active' : 'tab-btn-inactive'}`}
           >
-            Платежи
+            {t.payments}
           </button>
           <button
             onClick={() => setMode('balance')}
             className={`tab-btn !px-3 !py-1.5 text-xs ${mode === 'balance' ? 'tab-btn-active' : 'tab-btn-inactive'}`}
           >
-            Остаток
+            {t.balance}
           </button>
         </div>
       </div>
@@ -143,25 +135,23 @@ export default function PaymentChart({ result, currencySymbol }: PaymentChartPro
             if (idx >= 0 && idx < data.length) setHoverIdx(idx);
           }}
         >
-          {/* Grid */}
-          {tickValues.map((t, i) => (
+          {tickValues.map((val, i) => (
             <g key={i}>
               <line
                 x1={PAD.left}
                 x2={W - PAD.right}
-                y1={yScale(t)}
-                y2={yScale(t)}
+                y1={yScale(val)}
+                y2={yScale(val)}
                 stroke="#e2e8f0"
                 strokeWidth={1}
                 strokeDasharray={i === 0 ? '0' : '4 4'}
               />
-              <text x={PAD.left - 8} y={yScale(t) + 4} textAnchor="end" className="fill-neutral-400" style={{ fontSize: 11 }}>
-                {formatY(t)}
+              <text x={PAD.left - 8} y={yScale(val) + 4} textAnchor="end" className="fill-neutral-400" style={{ fontSize: 11 }}>
+                {formatY(val)}
               </text>
             </g>
           ))}
 
-          {/* X axis labels */}
           {xTickIndices.map((idx) => (
             <text
               key={idx}
@@ -171,7 +161,7 @@ export default function PaymentChart({ result, currencySymbol }: PaymentChartPro
               className="fill-neutral-400"
               style={{ fontSize: 11 }}
             >
-              {formatDateShort(data[idx].date)}
+              {formatDateShort(data[idx].date, locale)}
             </text>
           ))}
 
@@ -200,7 +190,6 @@ export default function PaymentChart({ result, currencySymbol }: PaymentChartPro
             </>
           )}
 
-          {/* Hover line + dot */}
           {hover && (
             <g>
               <line
@@ -221,37 +210,35 @@ export default function PaymentChart({ result, currencySymbol }: PaymentChartPro
           )}
         </svg>
 
-        {/* Tooltip */}
         {hover && (
           <div
             className="pointer-events-none absolute top-2 right-2 bg-white rounded-xl shadow-card-lg border border-neutral-200 p-3 text-xs min-w-[180px] animate-scale-in"
           >
-            <div className="font-semibold text-neutral-700 mb-1.5">{formatDateShort(hover.date)} (мес. {hover.month})</div>
+            <div className="font-semibold text-neutral-700 mb-1.5">{formatDateShort(hover.date, locale)} ({t.monthShort} {hover.month})</div>
             {mode === 'composition' ? (
               <div className="space-y-1">
-                <Row label="Платёж" value={hover.payment} symbol={currencySymbol} bold />
-                <Row label="Тело" value={hover.principal} symbol={currencySymbol} color="text-primary-600" />
-                <Row label="Проценты" value={hover.interest} symbol={currencySymbol} color="text-error-500" />
-                {hover.extra > 0 && <Row label="Досрочное" value={hover.extra} symbol={currencySymbol} color="text-success-600" />}
-                {hover.fee > 0 && <Row label="Комиссия" value={hover.fee} symbol={currencySymbol} color="text-warning-600" />}
+                <Row label={t.paymentLabel} value={hover.payment} symbol={currencySymbol} bold />
+                <Row label={t.body} value={hover.principal} symbol={currencySymbol} color="text-primary-600" />
+                <Row label={t.interest} value={hover.interest} symbol={currencySymbol} color="text-error-500" />
+                {hover.extra > 0 && <Row label={t.earlyLabel} value={hover.extra} symbol={currencySymbol} color="text-success-600" />}
+                {hover.fee > 0 && <Row label={t.feeLabel} value={hover.fee} symbol={currencySymbol} color="text-warning-600" />}
               </div>
             ) : (
               <div className="space-y-1">
-                <Row label="Остаток" value={hover.balance} symbol={currencySymbol} bold />
-                <Row label="Платёж" value={hover.payment} symbol={currencySymbol} />
+                <Row label={t.balance} value={hover.balance} symbol={currencySymbol} bold />
+                <Row label={t.paymentLabel} value={hover.payment} symbol={currencySymbol} />
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Legend */}
       {mode === 'composition' && (
         <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 justify-center">
-          <LegendItem color="bg-primary-500" label="Тело" />
-          <LegendItem color="bg-error-400" label="Проценты" />
-          <LegendItem color="bg-success-500" label="Досрочное" />
-          <LegendItem color="bg-warning-400" label="Комиссии" />
+          <LegendItem color="bg-primary-500" label={t.body} />
+          <LegendItem color="bg-error-400" label={t.interest} />
+          <LegendItem color="bg-success-500" label={t.earlyLabel} />
+          <LegendItem color="bg-warning-400" label={t.fees} />
         </div>
       )}
     </div>

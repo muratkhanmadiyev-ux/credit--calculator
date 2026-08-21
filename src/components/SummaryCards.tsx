@@ -1,42 +1,45 @@
 import { TrendingUp, Calendar, Percent, Wallet, Receipt, Scale } from 'lucide-react';
 import { type ScheduleResult, type LoanParams, formatAmount, formatTerm, formatDate, formatPercentExact } from '@/lib/loan';
+import { useI18n } from '@/lib/i18n';
 
 interface SummaryCardsProps {
   result: ScheduleResult;
   params: LoanParams;
   currencySymbol: string;
+  locale: string;
 }
 
-export default function SummaryCards({ result, params, currencySymbol }: SummaryCardsProps) {
+export default function SummaryCards({ result, params, currencySymbol, locale }: SummaryCardsProps) {
+  const { t, lang } = useI18n();
   const overpaymentPct = params.amount > 0 ? (result.overpayment / params.amount) * 100 : 0;
 
   const cards = [
     {
       icon: <Wallet className="w-5 h-5" />,
-      label: 'Ежемесячный платёж',
+      label: t.monthlyPayment,
       value: `${formatAmount(result.monthlyPayment)} ${currencySymbol}`,
-      sub: result.firstPayment !== result.lastPayment ? `от ${formatAmount(result.firstPayment)} до ${formatAmount(result.lastPayment)}` : 'фиксированный',
+      sub: result.firstPayment !== result.lastPayment ? `${lang === 'ru' ? 'от' : 'бастап'} ${formatAmount(result.firstPayment)} ${lang === 'ru' ? 'до' : 'дейін'} ${formatAmount(result.lastPayment)}` : t.monthlyPaymentFixed,
       color: 'primary',
     },
     {
       icon: <Receipt className="w-5 h-5" />,
-      label: 'Переплата',
+      label: t.overpayment,
       value: `${formatAmount(result.overpayment)} ${currencySymbol}`,
-      sub: `${formatPercentExact(overpaymentPct)}% от суммы`,
+      sub: `${formatPercentExact(overpaymentPct)}% ${t.overpaymentFromAmount}`,
       color: 'error',
     },
     {
       icon: <Calendar className="w-5 h-5" />,
-      label: 'Срок',
-      value: formatTerm(result.termActual),
-      sub: `до ${formatDate(result.endDate)}`,
+      label: t.termLabel,
+      value: formatTerm(result.termActual, lang),
+      sub: `${t.untilDate} ${formatDate(result.endDate, locale)}`,
       color: 'accent',
     },
     {
       icon: <Percent className="w-5 h-5" />,
-      label: 'Эффективная ставка',
+      label: t.effectiveRate,
       value: `${formatPercentExact(result.effectiveRate)}%`,
-      sub: 'с учётом комиссий',
+      sub: t.withFees,
       color: 'warning',
     },
   ];
@@ -64,14 +67,15 @@ export default function SummaryCards({ result, params, currencySymbol }: Summary
   );
 }
 
-export function TotalsBar({ result, currencySymbol }: { result: ScheduleResult; currencySymbol: string }) {
+export function TotalsBar({ result, currencySymbol, locale }: { result: ScheduleResult; currencySymbol: string; locale: string }) {
+  const { t } = useI18n();
   const total = result.totalPrincipal + result.totalInterest + result.totalFee;
   if (total === 0) return null;
 
   const segments = [
-    { label: 'Тело кредита', value: result.totalPrincipal, color: 'bg-primary-500' },
-    { label: 'Проценты', value: result.totalInterest, color: 'bg-error-400' },
-    { label: 'Комиссии', value: result.totalFee, color: 'bg-warning-400' },
+    { label: t.loanBody, value: result.totalPrincipal, color: 'bg-primary-500' },
+    { label: t.interest, value: result.totalInterest, color: 'bg-error-400' },
+    { label: t.fees, value: result.totalFee, color: 'bg-warning-400' },
   ].filter((s) => s.value > 0);
 
   return (
@@ -79,7 +83,7 @@ export function TotalsBar({ result, currencySymbol }: { result: ScheduleResult; 
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Scale className="w-4 h-4 text-neutral-500" />
-          <h3 className="text-sm font-semibold text-neutral-700">Структура выплат</h3>
+          <h3 className="text-sm font-semibold text-neutral-700">{t.paymentStructure}</h3>
         </div>
         <span className="text-sm font-display font-bold text-neutral-900 tabular-nums">
           {formatAmount(total)} {currencySymbol}

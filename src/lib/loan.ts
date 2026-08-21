@@ -1,3 +1,5 @@
+import type { Lang } from '@/lib/i18n';
+
 export type Currency = 'KZT' | 'RUB' | 'USD' | 'EUR' | 'KGS';
 
 export const CURRENCIES: { code: Currency; symbol: string; label: string }[] = [
@@ -116,22 +118,27 @@ function pluralize(n: number, forms: [string, string, string]): string {
   return forms[2];
 }
 
-export function formatTerm(totalMonths: number): string {
-  if (totalMonths <= 0) return '0 месяцев';
+export function formatTerm(totalMonths: number, lang: Lang = 'ru'): string {
+  if (totalMonths <= 0) return lang === 'ru' ? '0 месяцев' : '0 ай';
   const years = Math.floor(totalMonths / 12);
   const months = totalMonths % 12;
   const parts: string[] = [];
-  if (years > 0) parts.push(`${years} ${pluralize(years, ['год', 'года', 'лет'])}`);
-  if (months > 0) parts.push(`${months} ${pluralize(months, ['месяц', 'месяца', 'месяцев'])}`);
+  if (lang === 'ru') {
+    if (years > 0) parts.push(`${years} ${pluralize(years, ['год', 'года', 'лет'])}`);
+    if (months > 0) parts.push(`${months} ${pluralize(months, ['месяц', 'месяца', 'месяцев'])}`);
+  } else {
+    if (years > 0) parts.push(`${years} жыл`);
+    if (months > 0) parts.push(`${months} ай`);
+  }
   return parts.join(' ');
 }
 
-export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+export function formatDate(date: Date, locale: string = 'ru-RU'): string {
+  return new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
 }
 
-export function formatDateShort(date: Date): string {
-  return new Intl.DateTimeFormat('ru-RU', { month: 'short', year: '2-digit' }).format(date);
+export function formatDateShort(date: Date, locale: string = 'ru-RU'): string {
+  return new Intl.DateTimeFormat(locale, { month: 'short', year: '2-digit' }).format(date);
 }
 
 function computeOneTimeFee(params: LoanParams): number {
@@ -342,14 +349,14 @@ export function calculateSavings(withExtra: ScheduleResult, base: ScheduleResult
   };
 }
 
-export function toCSV(rows: ScheduleRow[]): string {
-  const header = ['№', 'Дата', 'Платёж', 'Проценты', 'Тело', 'Досрочное', 'Комиссия', 'Остаток'];
+export function toCSV(rows: ScheduleRow[], headers?: string[], locale: string = 'ru-RU'): string {
+  const header = headers ?? ['№', 'Дата', 'Платёж', 'Проценты', 'Тело', 'Досрочное', 'Комиссия', 'Остаток'];
   const lines = [header.join(';')];
   for (const r of rows) {
     lines.push(
       [
         r.month,
-        formatDate(r.date),
+        formatDate(r.date, locale),
         r.payment.toFixed(2),
         r.interest.toFixed(2),
         r.principal.toFixed(2),

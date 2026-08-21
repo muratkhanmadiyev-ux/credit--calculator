@@ -1,5 +1,6 @@
-import { GitCompareArrows, TrendingDown, Calendar, Wallet, ArrowRight } from 'lucide-react';
+import { GitCompareArrows, Wallet } from 'lucide-react';
 import { type ScheduleResult, formatAmount, formatTerm, formatPercentExact } from '@/lib/loan';
+import { useI18n } from '@/lib/i18n';
 
 interface ComparisonPanelProps {
   base: ScheduleResult;
@@ -9,6 +10,7 @@ interface ComparisonPanelProps {
   altLabel: string;
   baseColor: string;
   altColor: string;
+  locale: string;
 }
 
 export default function ComparisonPanel({
@@ -19,16 +21,17 @@ export default function ComparisonPanel({
   altLabel,
   baseColor,
   altColor,
+  locale,
 }: ComparisonPanelProps) {
+  const { t, lang } = useI18n();
   const interestSaved = Math.max(0, base.totalInterest - alt.totalInterest);
   const feeSaved = Math.max(0, base.totalFee - alt.totalFee);
   const monthsSaved = Math.max(0, base.termActual - alt.termActual);
-  const paymentDiff = alt.monthlyPayment - base.monthlyPayment;
   const totalSaved = interestSaved + feeSaved;
 
   const metrics = [
     {
-      label: 'Переплата',
+      label: t.overpayment,
       baseVal: `${formatAmount(base.overpayment)} ${currencySymbol}`,
       altVal: `${formatAmount(alt.overpayment)} ${currencySymbol}`,
       diff: base.overpayment - alt.overpayment,
@@ -36,15 +39,15 @@ export default function ComparisonPanel({
       good: (v: number) => v > 0,
     },
     {
-      label: 'Срок',
-      baseVal: formatTerm(base.termActual),
-      altVal: formatTerm(alt.termActual),
+      label: t.termLabel,
+      baseVal: formatTerm(base.termActual, lang),
+      altVal: formatTerm(alt.termActual, lang),
       diff: base.termActual - alt.termActual,
-      fmt: (v: number) => (v > 0 ? `−${v} мес` : v < 0 ? `+${Math.abs(v)} мес` : 'равно'),
+      fmt: (v: number) => (v > 0 ? `−${v} ${t.monthsShort}` : v < 0 ? `+${Math.abs(v)} ${t.monthsShort}` : t.equal),
       good: (v: number) => v > 0,
     },
     {
-      label: 'Платёж',
+      label: t.paymentLabel,
       baseVal: `${formatAmount(base.monthlyPayment)} ${currencySymbol}`,
       altVal: `${formatAmount(alt.monthlyPayment)} ${currencySymbol}`,
       diff: base.monthlyPayment - alt.monthlyPayment,
@@ -52,7 +55,7 @@ export default function ComparisonPanel({
       good: () => false,
     },
     {
-      label: 'Эфф. ставка',
+      label: t.effectiveRateShort,
       baseVal: `${formatPercentExact(base.effectiveRate)}%`,
       altVal: `${formatPercentExact(alt.effectiveRate)}%`,
       diff: base.effectiveRate - alt.effectiveRate,
@@ -65,7 +68,7 @@ export default function ComparisonPanel({
     <div className="card p-5 sm:p-6 animate-slide-up">
       <div className="flex items-center gap-2 mb-5">
         <GitCompareArrows className="w-5 h-5 text-primary-600" />
-        <h3 className="text-base font-display font-bold text-neutral-900">Сравнение сценариев</h3>
+        <h3 className="text-base font-display font-bold text-neutral-900">{t.comparisonTitle}</h3>
       </div>
 
       {/* Savings highlight */}
@@ -75,16 +78,16 @@ export default function ComparisonPanel({
             <Wallet className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <div className="text-xs font-medium text-success-700">Экономия на процентах и комиссиях</div>
+            <div className="text-xs font-medium text-success-700">{t.savingsOnInterest}</div>
             <div className="text-xl font-display font-bold text-success-700 tabular-nums">
               {formatAmount(totalSaved)} {currencySymbol}
             </div>
           </div>
           {monthsSaved > 0 && (
             <div className="text-right">
-              <div className="text-xs font-medium text-success-700">Срок короче на</div>
+              <div className="text-xs font-medium text-success-700">{t.termShorterBy}</div>
               <div className="text-lg font-display font-bold text-success-700 tabular-nums">
-                {monthsSaved} мес
+                {monthsSaved} {t.monthsShort}
               </div>
             </div>
           )}
@@ -100,7 +103,7 @@ export default function ComparisonPanel({
               {baseLabel}
             </span>
           </div>
-          <div className="text-xs text-neutral-400 text-center w-16">разница</div>
+          <div className="text-xs text-neutral-400 text-center w-16">{t.difference}</div>
           <div className={`text-sm font-semibold text-center ${altColor}`}>
             <span className="inline-flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${altColor}`} />
@@ -138,7 +141,7 @@ export default function ComparisonPanel({
 
       {/* Visual bar comparison */}
       <div className="mt-5 pt-4 border-t border-neutral-100">
-        <div className="text-xs font-medium text-neutral-500 mb-3">Переплата по сценариям</div>
+        <div className="text-xs font-medium text-neutral-500 mb-3">{t.overpaymentByScenario}</div>
         <div className="space-y-2.5">
           <CompareBar label={baseLabel} value={base.overpayment} max={Math.max(base.overpayment, alt.overpayment)} color={baseColor} symbol={currencySymbol} />
           <CompareBar label={altLabel} value={alt.overpayment} max={Math.max(base.overpayment, alt.overpayment)} color={altColor} symbol={currencySymbol} />

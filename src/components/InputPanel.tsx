@@ -27,6 +27,7 @@ import {
   formatAmountExact,
   addMonths,
 } from '@/lib/loan';
+import { useI18n, getLocale } from '@/lib/i18n';
 
 interface InputPanelProps {
   params: LoanParams;
@@ -37,29 +38,6 @@ interface InputPanelProps {
   scenarioColor: string;
   canDuplicate: boolean;
 }
-
-const REPAYMENT_OPTIONS: { value: RepaymentType; label: string; hint: string }[] = [
-  { value: 'annuity', label: 'Аннуитетный', hint: 'Равные платежи каждый месяц' },
-  { value: 'equal', label: 'Дифференц.', hint: 'Тело равными долями, проценты падают' },
-];
-
-const MONTHLY_FEE_MODES: { value: MonthlyFeeMode; label: string }[] = [
-  { value: 'abs', label: '₽ / мес' },
-  { value: 'pct', label: '% / год от суммы' },
-  { value: 'rem', label: '% / год от остатка' },
-  { value: 'remy', label: '% / мес от остатка' },
-];
-
-const EXTRA_REPEATS: { value: ExtraRepeat; label: string }[] = [
-  { value: 'once', label: 'Разово' },
-  { value: 'monthly', label: 'Ежемесячно' },
-  { value: 'yearly', label: 'Ежегодно' },
-];
-
-const EXTRA_MODES: { value: ExtraMode; label: string }[] = [
-  { value: 'reduce-term', label: 'Срок ↓' },
-  { value: 'reduce-payment', label: 'Платёж ↓' },
-];
 
 function FieldLabel({ icon, children, hint }: { icon: React.ReactNode; children: React.ReactNode; hint?: string }) {
   return (
@@ -214,6 +192,8 @@ export default function InputPanel({
   scenarioColor,
   canDuplicate,
 }: InputPanelProps) {
+  const { t, lang } = useI18n();
+  const locale = getLocale(lang);
   const [termUnit, setTermUnit] = useState<TermUnit>(params.termMonths % 12 === 0 && params.termMonths >= 12 ? 'years' : 'months');
   const [showFee, setShowFee] = useState(params.oneTimeFee > 0 || params.monthlyFee > 0);
   const [showExtra, setShowExtra] = useState(params.extras.length > 0);
@@ -261,6 +241,29 @@ export default function InputPanel({
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const repaymentOptions: { value: RepaymentType; label: string; hint: string }[] = [
+    { value: 'annuity', label: t.annuity, hint: t.annuityHint },
+    { value: 'equal', label: t.differential, hint: t.differentialHint },
+  ];
+
+  const monthlyFeeModes: { value: MonthlyFeeMode; label: string }[] = [
+    { value: 'abs', label: t.feeAbs },
+    { value: 'pct', label: t.feePct },
+    { value: 'rem', label: t.feeRem },
+    { value: 'remy', label: t.feeRemy },
+  ];
+
+  const extraRepeats: { value: ExtraRepeat; label: string }[] = [
+    { value: 'once', label: t.once },
+    { value: 'monthly', label: t.monthly },
+    { value: 'yearly', label: t.yearly },
+  ];
+
+  const extraModes: { value: ExtraMode; label: string }[] = [
+    { value: 'reduce-term', label: t.reduceTerm },
+    { value: 'reduce-payment', label: t.reducePayment },
+  ];
+
   return (
     <div className="card p-5 sm:p-6 space-y-5">
       {/* Scenario badge */}
@@ -274,12 +277,12 @@ export default function InputPanel({
             <button
               onClick={handleDuplicate}
               className="btn-ghost !px-2 !py-1.5"
-              title="Скопировать параметры в сценарий Б"
+              title={t.copyToB}
             >
               {copied ? <Check className="w-4 h-4 text-success-600" /> : <Copy className="w-4 h-4" />}
             </button>
           )}
-          <button onClick={onReset} className="btn-ghost !px-2 !py-1.5" title="Сбросить">
+          <button onClick={onReset} className="btn-ghost !px-2 !py-1.5" title={t.reset}>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -287,8 +290,8 @@ export default function InputPanel({
 
       {/* Amount */}
       <div>
-        <FieldLabel icon={<Banknote className="w-4 h-4" />} hint="Сумма, которую вы берёте в кредит.">
-          Сумма кредита
+        <FieldLabel icon={<Banknote className="w-4 h-4" />} hint={t.loanAmountHint}>
+          {t.loanAmount}
         </FieldLabel>
         <div className="flex gap-2">
           <div className="flex-1">
@@ -309,15 +312,15 @@ export default function InputPanel({
         </div>
         <Slider value={Math.min(params.amount, 50000000)} min={10000} max={50000000} step={10000} onChange={(v) => onChange({ amount: v })} />
         <div className="flex justify-between mt-1 text-xs text-neutral-400">
-          <span>10 тыс</span>
-          <span>50 млн</span>
+          <span>10 {lang === 'ru' ? 'тыс' : 'мың'}</span>
+          <span>50 {lang === 'ru' ? 'млн' : 'млн'}</span>
         </div>
       </div>
 
       {/* Term */}
       <div>
-        <FieldLabel icon={<Calendar className="w-4 h-4" />} hint="На какой срок вы берёте кредит.">
-          Срок кредита
+        <FieldLabel icon={<Calendar className="w-4 h-4" />} hint={t.termHint}>
+          {t.term}
         </FieldLabel>
         <div className="flex gap-2">
           <div className="flex-1">
@@ -332,8 +335,8 @@ export default function InputPanel({
             <MiniSelect
               value={termUnit}
               options={[
-                { value: 'months', label: 'мес' },
-                { value: 'years', label: 'лет' },
+                { value: 'months', label: t.monthsShort },
+                { value: 'years', label: t.yearsShort },
               ]}
               onChange={(v) => {
                 const newUnit = v as TermUnit;
@@ -346,21 +349,21 @@ export default function InputPanel({
         </div>
         <Slider
           value={termUnit === 'years' ? Math.min(params.termMonths / 12, 30) : Math.min(params.termMonths, 360)}
-          min={termUnit === 'years' ? 1 : 1}
+          min={1}
           max={termUnit === 'years' ? 30 : 360}
-          step={termUnit === 'years' ? 1 : 1}
+          step={1}
           onChange={(v) => setTerm(v, termUnit)}
         />
         <div className="flex justify-between mt-1 text-xs text-neutral-400">
-          <span>{termUnit === 'years' ? '1 год' : '1 мес'}</span>
-          <span>{termUnit === 'years' ? '30 лет' : '360 мес'}</span>
+          <span>{termUnit === 'years' ? (lang === 'ru' ? '1 год' : '1 жыл') : (lang === 'ru' ? '1 мес' : '1 ай')}</span>
+          <span>{termUnit === 'years' ? (lang === 'ru' ? '30 лет' : '30 жыл') : (lang === 'ru' ? '360 мес' : '360 ай')}</span>
         </div>
       </div>
 
       {/* Rate */}
       <div>
-        <FieldLabel icon={<Percent className="w-4 h-4" />} hint="Годовая номинальная ставка по кредиту.">
-          Ставка
+        <FieldLabel icon={<Percent className="w-4 h-4" />} hint={t.rateHint}>
+          {t.rate}
         </FieldLabel>
         <NumberInput
           value={params.rate}
@@ -381,11 +384,11 @@ export default function InputPanel({
 
       {/* Repayment type */}
       <div>
-        <FieldLabel icon={<Repeat className="w-4 h-4" />} hint="Аннуитет — равные платежи. Дифференцированный — тело равными долями, проценты уменьшаются.">
-          Тип платежа
+        <FieldLabel icon={<Repeat className="w-4 h-4" />} hint={t.repaymentHint}>
+          {t.repaymentType}
         </FieldLabel>
         <div className="flex gap-1 p-1 bg-neutral-100 rounded-xl">
-          {REPAYMENT_OPTIONS.map((opt) => (
+          {repaymentOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => onChange({ repayment: opt.value })}
@@ -400,8 +403,8 @@ export default function InputPanel({
 
       {/* First payment date */}
       <div>
-        <FieldLabel icon={<Calendar className="w-4 h-4" />} hint="Дата первого платежа по графику.">
-          Первый платёж
+        <FieldLabel icon={<Calendar className="w-4 h-4" />} hint={t.firstPaymentHint}>
+          {t.firstPayment}
         </FieldLabel>
         <input
           type="date"
@@ -420,14 +423,14 @@ export default function InputPanel({
           onClick={() => setShowFee(!showFee)}
           className="w-full flex items-center justify-between py-1 text-sm font-medium text-neutral-700 hover:text-neutral-900 transition-colors"
         >
-          <span>Комиссии и страховки</span>
+          <span>{t.feesAndInsurance}</span>
           <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform duration-200 ${showFee ? 'rotate-180' : ''}`} />
         </button>
         {showFee && (
           <div className="mt-3 space-y-4 animate-fade-in">
             {/* One-time fee */}
             <div>
-              <div className="text-xs font-medium text-neutral-500 mb-1.5">Единоразовая комиссия</div>
+              <div className="text-xs font-medium text-neutral-500 mb-1.5">{t.oneTimeFee}</div>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <NumberInput
@@ -451,7 +454,7 @@ export default function InputPanel({
             </div>
             {/* Monthly fee */}
             <div>
-              <div className="text-xs font-medium text-neutral-500 mb-1.5">Ежемесячная комиссия</div>
+              <div className="text-xs font-medium text-neutral-500 mb-1.5">{t.monthlyFee}</div>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <NumberInput
@@ -464,7 +467,7 @@ export default function InputPanel({
                 <div className="w-44">
                   <MiniSelect
                     value={params.monthlyFeeMode}
-                    options={MONTHLY_FEE_MODES}
+                    options={monthlyFeeModes}
                     onChange={(v) => onChange({ monthlyFeeMode: v as MonthlyFeeMode })}
                   />
                 </div>
@@ -480,32 +483,32 @@ export default function InputPanel({
           onClick={() => setShowExtra(!showExtra)}
           className="w-full flex items-center justify-between py-1 text-sm font-medium text-neutral-700 hover:text-neutral-900 transition-colors"
         >
-          <span>Досрочное погашение</span>
+          <span>{t.earlyRepayment}</span>
           <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform duration-200 ${showExtra ? 'rotate-180' : ''}`} />
         </button>
         {showExtra && (
           <div className="mt-3 space-y-3 animate-fade-in">
             {params.extras.length === 0 && (
               <p className="text-xs text-neutral-400 leading-relaxed">
-                Добавьте досрочные платежи, чтобы увидеть, как они сокращают срок и переплату.
+                {t.earlyRepaymentHint}
               </p>
             )}
             {params.extras.map((ex, idx) => (
               <div key={ex.id} className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-2.5 animate-scale-in">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-neutral-500">Платёж #{idx + 1}</span>
+                  <span className="text-xs font-semibold text-neutral-500">{t.paymentNumber} #{idx + 1}</span>
                   <div className="flex items-center gap-0.5">
-                    <button onClick={() => duplicateExtra(ex.id)} className="btn-ghost !px-1.5 !py-1" title="Дублировать">
+                    <button onClick={() => duplicateExtra(ex.id)} className="btn-ghost !px-1.5 !py-1" title={t.duplicate}>
                       <Copy className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={() => removeExtra(ex.id)} className="btn-ghost !px-1.5 !py-1 hover:text-error-600" title="Удалить">
+                    <button onClick={() => removeExtra(ex.id)} className="btn-ghost !px-1.5 !py-1 hover:text-error-600" title={t.delete}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="text-[11px] text-neutral-400 mb-1">Сумма</div>
+                    <div className="text-[11px] text-neutral-400 mb-1">{t.amount}</div>
                     <NumberInput
                       value={ex.amount}
                       onChange={(v) => updateExtra(ex.id, { amount: v })}
@@ -514,7 +517,7 @@ export default function InputPanel({
                     />
                   </div>
                   <div>
-                    <div className="text-[11px] text-neutral-400 mb-1">С какого месяца</div>
+                    <div className="text-[11px] text-neutral-400 mb-1">{t.fromMonth}</div>
                     <NumberInput
                       value={ex.startMonth}
                       onChange={(v) => updateExtra(ex.id, { startMonth: Math.max(1, Math.round(v)) })}
@@ -525,18 +528,18 @@ export default function InputPanel({
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="text-[11px] text-neutral-400 mb-1">Периодичность</div>
+                    <div className="text-[11px] text-neutral-400 mb-1">{t.frequency}</div>
                     <MiniSelect
                       value={ex.repeat}
-                      options={EXTRA_REPEATS}
+                      options={extraRepeats}
                       onChange={(v) => updateExtra(ex.id, { repeat: v as ExtraRepeat })}
                     />
                   </div>
                   <div>
-                    <div className="text-[11px] text-neutral-400 mb-1">Применить к</div>
+                    <div className="text-[11px] text-neutral-400 mb-1">{t.applyTo}</div>
                     <MiniSelect
                       value={ex.mode}
-                      options={EXTRA_MODES}
+                      options={extraModes}
                       onChange={(v) => updateExtra(ex.id, { mode: v as ExtraMode })}
                     />
                   </div>
@@ -545,7 +548,7 @@ export default function InputPanel({
             ))}
             <button onClick={addExtra} className="btn-outline w-full">
               <Plus className="w-4 h-4" />
-              Добавить платёж
+              {t.addPayment}
             </button>
           </div>
         )}
@@ -554,7 +557,7 @@ export default function InputPanel({
       {/* Quick date adjust hint */}
       <div className="pt-1 border-t border-neutral-100 flex items-center gap-2 text-xs text-neutral-400">
         <Calendar className="w-3.5 h-3.5" />
-        <span>Первый платёж: {addMonths(params.firstPaymentDate, 0).toLocaleDateString('ru-RU')}</span>
+        <span>{t.firstPayment}: {addMonths(params.firstPaymentDate, 0).toLocaleDateString(locale)}</span>
       </div>
     </div>
   );
