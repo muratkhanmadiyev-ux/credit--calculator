@@ -291,7 +291,7 @@ const kk: Translations = {
   repaymentHint: 'Аннуитет — тең төлемдер. Дифференциалды — негізгі қарыз тең үлестермен, пайыздар азаяды.',
   annuity: 'Аннуитеттік',
   annuityHint: 'Ай сайын тең төлемдер',
-  differential: 'Дифференц.',
+  differential: 'Сараланған',
   differentialHint: 'Негізгі қарыз тең үлестермен, пайыздар төмендейді',
   firstPayment: 'Алғашқы төлем',
   firstPaymentHint: 'Кесте бойынша алғашқы төлем күні.',
